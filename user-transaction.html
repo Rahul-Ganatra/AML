@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Transactions</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f4f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .transaction-table {
+            width: 100%;
+            max-width: 800px;
+            margin-top: 20px;
+            border-collapse: collapse;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .transaction-table th,
+        .transaction-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .transaction-table th {
+            background-color: #007bff;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .transaction-table tr {
+            background-color: #fff;
+            transition: background-color 0.3s;
+        }
+
+        .transaction-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .transaction-table tr:hover {
+            background-color: #e9ecef;
+        }
+
+        .button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-size: 16px;
+            margin-top: 20px;
+            margin-right: 10px;
+        }
+
+        .button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+    </style>
+    <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC0lMVVq_q-Pjd-R9VnnN-e9Sdp556qDKQ",
+            authDomain: "anti-money-landering.firebaseapp.com",
+            projectId: "anti-money-landering",
+            storageBucket: "anti-money-landering.firebasestorage.app",
+            messagingSenderId: "775468075770",
+            appId: "1:775468075770:web:1ffe61139ec2147d5ed743",
+            measurementId: "G-2FGQ872XXL"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let userId = null;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                userId = user.uid;
+                loadTransactions();
+            } else {
+                window.location.href = 'index.html'; // Redirect to login if not authenticated
+            }
+        });
+
+        async function loadTransactions() {
+            const transactionsTableBody = document.getElementById('transactions-table-body');
+            transactionsTableBody.innerHTML = ''; // Clear previous transactions
+
+            const q = query(collection(db, 'transactions'), where('userId', '==', userId));
+            const querySnapshot = await getDocs(q);
+
+            querySnapshot.forEach((doc) => {
+                const transaction = doc.data();
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${transaction.transactionType}</td>
+                    <td>${transaction.amount}</td>
+                    <td>${transaction.details}</td>
+                    <td>${transaction.cardNumber || '-'}</td>
+                    <td>${transaction.expiryDate || '-'}</td>
+                    <td>${transaction.cvv || '-'}</td>
+                    <td>${transaction.accountNumber || '-'}</td>
+                    <td>${transaction.ifscCode || '-'}</td>
+                    <td>${transaction.contactNumber || '-'}</td>
+                    <td>${transaction.timestamp.toDate().toLocaleString()}</td>
+                `;
+                transactionsTableBody.appendChild(row);
+            });
+        }
+
+        window.goBack = function () {
+            window.location.href = 'user-dashboard.html';
+        };
+
+        window.logout = function () {
+            signOut(auth).then(() => {
+                window.location.href = 'index.html';
+            }).catch((error) => {
+                console.error('Error signing out: ', error);
+            });
+        };
+    </script>
+</head>
+
+<body>
+    <h1>Your Transactions</h1>
+    <table class="transaction-table">
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Details</th>
+                <th>Card Number</th>
+                <th>Expiry Date</th>
+                <th>CVV</th>
+                <th>Account Number</th>
+                <th>IFSC Code</th>
+                <th>Contact Number</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody id="transactions-table-body">
+            <!-- Transactions will be populated here -->
+        </tbody>
+    </table>
+    <div class="button-container">
+        <button class="button" onclick="goBack()">Back to Dashboard</button>
+        <button class="button" onclick="logout()">Logout</button>
+    </div>
+</body>
+
+</html>

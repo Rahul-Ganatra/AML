@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f4f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            position: relative;
+        }
+
+        .transaction-form {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            margin-bottom: 20px;
+        }
+
+        .transaction-form h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .transaction-form input,
+        .transaction-form select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        .transaction-form button {
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-size: 16px;
+        }
+
+        .transaction-form button:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+
+        .button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .error {
+            color: red;
+            font-size: 14px;
+            margin-top: -10px;
+            margin-bottom: 10px;
+        }
+    </style>
+    <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC0lMVVq_q-Pjd-R9VnnN-e9Sdp556qDKQ",
+            authDomain: "anti-money-landering.firebaseapp.com",
+            projectId: "anti-money-landering",
+            storageBucket: "anti-money-landering.firebasestorage.app",
+            messagingSenderId: "775468075770",
+            appId: "1:775468075770:web:1ffe61139ec2147d5ed743",
+            measurementId: "G-2FGQ872XXL"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let userId = null;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                userId = user.uid;
+                document.getElementById('user-id').textContent = `User ID: ${userId}`;
+            } else {
+                window.location.href = 'index.html'; // Redirect to login if not authenticated
+            }
+        });
+
+        window.submitTransaction = async function () {
+            const transactionType = document.getElementById('transaction-type').value;
+            const amount = document.getElementById('amount').value;
+            const details = document.getElementById('details').value;
+            const cardNumber = document.getElementById('card-number').value.replace(/\s/g, '');
+            const expiryDate = document.getElementById('expiry-date').value;
+            const cvv = document.getElementById('cvv').value;
+            const accountNumber = document.getElementById('account-number').value;
+            const ifscCode = document.getElementById('ifsc-code').value;
+            const contactNumber = document.getElementById('contact-number').value;
+
+            if (transactionType && amount && details) {
+                if (transactionType === 'card' && (!cardNumber || !expiryDate || !cvv)) {
+                    alert('Please fill in card number, expiry date, and CVV for card transactions');
+                    return;
+                }
+                if (transactionType === 'neft' && (!accountNumber || ifscCode.length !== 11)) {
+                    alert('Please fill in account number and a valid 11-character IFSC code for NEFT transactions');
+                    return;
+                }
+                if (transactionType === 'contact' && (!contactNumber || contactNumber.length !== 10)) {
+                    alert('Please fill in a valid 10-digit contact number for contact transactions');
+                    return;
+                }
+
+                if (transactionType === 'card' && cardNumber.length !== 16) {
+                    alert('Card number must be exactly 16 digits');
+                    return;
+                }
+
+                if (!validateExpiryDate(expiryDate)) {
+                    alert('Invalid expiry date. Please ensure the month is between 01 and 12 and the year is not in the past.');
+                    return;
+                }
+
+                try {
+                    await addDoc(collection(db, 'transactions'), {
+                        userId: userId,
+                        transactionType: transactionType,
+                        amount: parseFloat(amount),
+                        details: details,
+                        cardNumber: transactionType === 'card' ? cardNumber : null,
+                        expiryDate: transactionType === 'card' ? expiryDate : null,
+                        cvv: transactionType === 'card' ? cvv : null,
+                        accountNumber: transactionType === 'neft' ? accountNumber : null,
+                        ifscCode: transactionType === 'neft' ? ifscCode : null,
+                        contactNumber: transactionType === 'contact' ? contactNumber : null,
+                        timestamp: new Date()
+                    });
+                    alert('Transaction submitted successfully!');
+                } catch (error) {
+                    alert('Error submitting transaction: ' + error.message);
+                }
+            } else {
+                alert('Please fill in all fields');
+            }
+        };
+
+        window.toggleTransactionFields = function () {
+            const transactionType = document.getElementById('transaction-type').value;
+            const cardFields = document.getElementById('card-fields');
+            const neftFields = document.getElementById('neft-fields');
+            const contactFields = document.getElementById('contact-fields');
+            cardFields.style.display = transactionType === 'card' ? 'block' : 'none';
+            neftFields.style.display = transactionType === 'neft' ? 'block' : 'none';
+            contactFields.style.display = transactionType === 'contact' ? 'block' : 'none';
+        };
+
+        window.navigateToTransactionHistory = function () {
+            window.location.href = 'user-transaction.html';
+        };
+
+        window.logout = function () {
+            signOut(auth).then(() => {
+                window.location.href = 'index.html';
+            }).catch((error) => {
+                console.error('Error signing out: ', error);
+            });
+        };
+
+        window.formatExpiryDate = function (event) {
+            const input = event.target;
+            let value = input.value.replace(/\D/g, '');
+            if (value.length > 2) {
+                value = value.slice(0, 2) + '/' + value.slice(2);
+            }
+            input.value = value;
+        };
+
+        window.formatCardNumber = function (event) {
+            const input = event.target;
+            let value = input.value.replace(/\D/g, '');
+            if (value.length > 16) {
+                value = value.slice(0, 16);
+            }
+            input.value = value.replace(/(.{4})/g, '$1 ').trim();
+        };
+
+        window.maskCVV = function (event) {
+            const input = event.target;
+            input.type = 'password';
+            input.maxLength = 3;
+        };
+
+        function validateExpiryDate(expiryDate) {
+            const [month, year] = expiryDate.split('/').map(Number);
+            if (!month || !year || month < 1 || month > 12) {
+                return false;
+            }
+            const currentYear = new Date().getFullYear() % 100; // Get last two digits of the current year
+            const currentMonth = new Date().getMonth() + 1; // Months are zero-indexed
+            if (year < currentYear || (year === currentYear && month < currentMonth)) {
+                return false;
+            }
+            return true;
+        }
+    </script>
+</head>
+
+<body>
+    <div class="transaction-form">
+        <h2>Make a Transaction</h2>
+        <p id="user-id">User ID: Loading...</p>
+        <select id="transaction-type" onchange="toggleTransactionFields()">
+            <option value="">Select Transaction Type</option>
+            <option value="card">Card</option>
+            <option value="contact">Contact Number</option>
+            <option value="neft">NEFT</option>
+        </select>
+        <div id="card-fields" style="display: none;">
+            <input type="text" id="card-number" placeholder="Card Number" oninput="formatCardNumber(event)">
+            <input type="text" id="expiry-date" placeholder="Expiry Date (MM/YY)" oninput="formatExpiryDate(event)">
+            <input type="text" id="cvv" placeholder="CVV" onfocus="maskCVV(event)">
+        </div>
+        <div id="neft-fields" style="display: none;">
+            <input type="text" id="account-number" placeholder="Account Number">
+            <input type="text" id="ifsc-code" placeholder="IFSC Code" maxlength="11">
+        </div>
+        <div id="contact-fields" style="display: none;">
+            <input type="text" id="contact-number" placeholder="Contact Number" maxlength="10">
+        </div>
+        <input type="number" id="amount" placeholder="Amount">
+        <input type="text" id="details" placeholder="Transaction Details">
+        <button onclick="submitTransaction()">Submit</button>
+    </div>
+    <div class="button-container">
+        <button class="button" onclick="navigateToTransactionHistory()">Show Transaction History</button>
+        <button class="button" onclick="logout()">Logout</button>
+    </div>
+</body>
+
+</html>

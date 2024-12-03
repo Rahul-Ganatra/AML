@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            perspective: 1000px;
+        }
+
+        .card {
+            width: 320px;
+            height: 420px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            box-sizing: border-box;
+        }
+
+        .card-face.front {
+            background: linear-gradient(to bottom, #a8e063, #56ab2f);
+        }
+
+        .card-face.back {
+            background: linear-gradient(135deg, #ff4b5c 0%, #ff4b5c 100%);
+            transform: rotateY(180deg);
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            text-align: center;
+            color: #fff;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+        }
+
+        .back-button {
+            background-color: #6c757d;
+        }
+
+        .back-button:hover {
+            background-color: #5a6268;
+        }
+
+        .arrow-button {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .arrow-button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .signup-button {
+            background-color: #ffc107;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .signup-button:hover {
+            background-color: #e0a800;
+            transform: translateY(-2px);
+        }
+    </style>
+    <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC0lMVVq_q-Pjd-R9VnnN-e9Sdp556qDKQ",
+            authDomain: "anti-money-landering.firebaseapp.com",
+            projectId: "anti-money-landering",
+            storageBucket: "anti-money-landering.firebasestorage.app",
+            messagingSenderId: "775468075770",
+            appId: "1:775468075770:web:1ffe61139ec2147d5ed743",
+            measurementId: "G-2FGQ872XXL"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        window.auth = auth; // Make auth available globally
+
+        window.signup = function (role) {
+            let email, password, code;
+            if (role === 'user') {
+                email = document.getElementById('user-signup-username').value;
+                password = document.getElementById('user-signup-password').value;
+            } else if (role === 'admin') {
+                email = document.getElementById('admin-signup-username').value;
+                password = document.getElementById('admin-signup-password').value;
+                code = document.getElementById('admin-signup-code').value;
+                if (code !== '123123') { // Admin code is set to '123123'
+                    alert('Invalid admin code');
+                    return;
+                }
+            }
+
+            if (email && password) {
+                createUserWithEmailAndPassword(auth, email, password)
+                    .then((userCredential) => {
+                        alert(role + ' signed up with email: ' + email);
+                        if (role === 'user') {
+                            toggleUserForm('login');
+                        } else if (role === 'admin') {
+                            toggleAdminForm('login');
+                        }
+                    })
+                    .catch((error) => {
+                        alert('Error: ' + error.message);
+                    });
+            } else {
+                alert('Please enter all required fields');
+            }
+        };
+
+        window.login = function (role) {
+            let email, password;
+            if (role === 'user') {
+                email = document.getElementById('user-login-username').value;
+                password = document.getElementById('user-login-password').value;
+            } else if (role === 'admin') {
+                email = document.getElementById('admin-login-username').value;
+                password = document.getElementById('admin-login-password').value;
+            }
+
+            if (email && password) {
+                signInWithEmailAndPassword(auth, email, password)
+                    .then((userCredential) => {
+                        alert(role + ' logged in with email: ' + email);
+                        if (role === 'user') {
+                            window.location.href = 'user-dashboard.html';
+                        } else if (role === 'admin') {
+                            window.location.href = 'admin-dashboard.html';
+                        }
+                    })
+                    .catch((error) => {
+                        alert('Error: ' + error.message);
+                    });
+            } else {
+                alert('Please enter both email and password');
+            }
+        };
+
+        window.flipCard = function () {
+            const card = document.getElementById('card');
+            card.classList.toggle('flipped');
+        };
+
+        window.toggleUserForm = function (form) {
+            document.getElementById('user-section').style.display = form === 'signup' ? 'none' : 'flex';
+            document.getElementById('user-signup-section').style.display = form === 'signup' ? 'flex' : 'none';
+        };
+
+        window.toggleAdminForm = function (form) {
+            document.getElementById('admin-section').style.display = form === 'signup' ? 'none' : 'flex';
+            document.getElementById('admin-signup-section').style.display = form === 'signup' ? 'flex' : 'none';
+        };
+    </script>
+</head>
+
+<body>
+    <div class="card" id="card">
+        <!-- User Section -->
+        <div class="card-face front" id="user-section">
+            <h2>User Login</h2>
+            <input type="text" id="user-login-username" placeholder="Email">
+            <input type="password" id="user-login-password" placeholder="Password">
+            <button onclick="login('user')">Login</button>
+            <button class="back-button" onclick="toggleUserForm('signup')">Sign Up</button>
+            <button class="arrow-button" onclick="flipCard()">&#9654;</button>
+        </div>
+
+        <!-- User Signup -->
+        <div class="card-face front" id="user-signup-section" style="display: none;">
+            <h2>User Sign Up</h2>
+            <input type="text" id="user-signup-username" placeholder="Email">
+            <input type="password" id="user-signup-password" placeholder="Password">
+            <button class="signup-button" onclick="signup('user')">Sign Up</button>
+            <button class="back-button" onclick="toggleUserForm('login')">Back to Login</button>
+        </div>
+
+        <!-- Admin Section -->
+        <div class="card-face back" id="admin-section">
+            <h2>Admin Login</h2>
+            <input type="text" id="admin-login-username" placeholder="Email">
+            <input type="password" id="admin-login-password" placeholder="Password">
+            <button onclick="login('admin')">Login</button>
+            <button class="back-button" onclick="toggleAdminForm('signup')">Sign Up</button>
+            <button class="arrow-button" onclick="flipCard()">&#9664;</button>
+        </div>
+
+        <!-- Admin Signup -->
+        <div class="card-face back" id="admin-signup-section" style="display: none;">
+            <h2>Admin Sign Up</h2>
+            <input type="text" id="admin-signup-username" placeholder="Email">
+            <input type="password" id="admin-signup-password" placeholder="Password">
+            <input type="text" id="admin-signup-code" placeholder="Admin Code">
+            <button class="signup-button" onclick="signup('admin')">Sign Up</button>
+            <button class="back-button" onclick="toggleAdminForm('login')">Back to Login</button>
+        </div>
+    </div>
+</body>
+
+</html>
