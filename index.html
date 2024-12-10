@@ -183,7 +183,7 @@
             }
         };
 
-        window.login = function (role) {
+        window.login = async function (role) {
             let email, password;
             if (role === 'user') {
                 email = document.getElementById('user-login-username').value;
@@ -194,18 +194,33 @@
             }
 
             if (email && password) {
-                signInWithEmailAndPassword(auth, email, password)
-                    .then((userCredential) => {
-                        alert(role + ' logged in with email: ' + email);
+                try {
+                    // First authenticate with Firebase
+                    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                    
+                    // Then verify with backend
+                    const response = await fetch('http://localhost:5000/api/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ email, password, role })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
                         if (role === 'user') {
                             window.location.href = 'user-dashboard.html';
                         } else if (role === 'admin') {
                             window.location.href = 'admin-dashboard.html';
                         }
-                    })
-                    .catch((error) => {
-                        alert('Error: ' + error.message);
-                    });
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
             } else {
                 alert('Please enter both email and password');
             }
@@ -225,6 +240,44 @@
             document.getElementById('admin-section').style.display = form === 'signup' ? 'none' : 'flex';
             document.getElementById('admin-signup-section').style.display = form === 'signup' ? 'flex' : 'none';
         };
+
+        async function loginWithBackend(email, password, role) {
+            try {
+                const response = await fetch('http://localhost:5000/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password, role })
+                });
+                const data = await response.json();
+                console.log('Backend response:', data);
+                // Continue with your existing login logic
+                return true;
+            } catch (error) {
+                console.error('Backend error:', error);
+                return false;
+            }
+        }
+
+        async function signupWithBackend(email, password, role, code = null) {
+            try {
+                const response = await fetch('http://localhost:5000/api/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password, role, code })
+                });
+                const data = await response.json();
+                console.log('Backend response:', data);
+                // Continue with your existing signup logic
+                return true;
+            } catch (error) {
+                console.error('Backend error:', error);
+                return false;
+            }
+        }
     </script>
 </head>
 

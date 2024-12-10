@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Transactions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+
+        table {
+            width: 90%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #e0e0e0;
+        }
+
+        .button {
+            position: fixed;
+            bottom: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js";
+        import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyC0lMVVq_q-Pjd-R9VnnN-e9Sdp556qDKQ",
+            authDomain: "anti-money-landering.firebaseapp.com",
+            projectId: "anti-money-landering",
+            storageBucket: "anti-money-landering.firebasestorage.app",
+            messagingSenderId: "775468075770",
+            appId: "1:775468075770:web:1ffe61139ec2147d5ed743",
+            measurementId: "G-2FGQ872XXL"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Fetch and display transactions
+        async function fetchAndDisplayTransactions() {
+            const transactions = [];
+            const querySnapshot = await getDocs(collection(db, 'transactions'));
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                transactions.push(data);
+            });
+
+            const tableBody = document.getElementById('transactionTableBody');
+            transactions.forEach(transaction => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${transaction.userId || '-'}</td>
+                    <td>${transaction.transactionType}</td>
+                    <td>${transaction.amount}</td>
+                    <td>${transaction.details || '-'}</td>
+                    <td>${transaction.cardNumber || '-'}</td>
+                    <td>${transaction.expiryDate || '-'}</td>
+                    <td>${transaction.cvv || '-'}</td>
+                    <td>${transaction.accountNumber || '-'}</td>
+                    <td>${transaction.ifscCode || '-'}</td>
+                    <td>${transaction.contactNumber || '-'}</td>
+                    <td>${transaction.timestamp ? new Date(transaction.timestamp.toDate()).toLocaleString() : '-'}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Logout function
+        function logout() {
+            signOut(auth).then(() => {
+                window.location.href = 'index.html';
+            }).catch((error) => {
+                console.error('Error signing out: ', error);
+            });
+        }
+
+        window.onload = fetchAndDisplayTransactions;
+    </script>
+</head>
+
+<body>
+    <h1 style="text-align: center;">Transaction List</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>User ID</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Details</th>
+                <th>Card Number</th>
+                <th>Expiry Date</th>
+                <th>CVV</th>
+                <th>Account Number</th>
+                <th>IFSC Code</th>
+                <th>Contact Number</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody id="transactionTableBody">
+            <!-- Transactions will be inserted here -->
+        </tbody>
+    </table>
+    <button class="button" onclick="window.location.href='admin-dashboard.html'" style="right: 140px;">Go to
+        Dashboard</button>
+    <button class="button" onclick="logout()" style="right: 10px;">Logout</button>
+</body>
+
+</html>

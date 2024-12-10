@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyC0lMVVq_q-Pjd-R9VnnN-e9Sdp556qDKQ",
+            authDomain: "anti-money-landering.firebaseapp.com",
+            projectId: "anti-money-landering",
+            storageBucket: "anti-money-landering.firebasestorage.app",
+            messagingSenderId: "775468075770",
+            appId: "1:775468075770:web:1ffe61139ec2147d5ed743",
+            measurementId: "G-2FGQ872XXL"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Fetch transaction data from Firestore
+        async function fetchTransactionData() {
+            const transactions = [];
+            const querySnapshot = await getDocs(collection(db, 'transactions'));
+            querySnapshot.forEach((doc) => {
+                transactions.push(doc.data());
+            });
+            return transactions;
+        }
+
+        // Render line chart using Chart.js
+        async function renderChart() {
+            const transactions = await fetchTransactionData();
+            const labels = transactions.map(t => t.timestamp ? new Date(t.timestamp.toDate()).toLocaleDateString() : '');
+            const data = transactions.map(t => t.amount);
+            const methods = transactions.map(t => t.transactionType);
+
+            const ctx = document.getElementById('transactionChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Transaction Amounts',
+                        data: data,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 2,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Amount'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const index = context.dataIndex;
+                                    const amount = context.dataset.data[index];
+                                    const method = methods[index];
+                                    return `Amount: ${amount}, Method: ${method}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Check authentication state
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = 'index.html'; // Redirect to login if not authenticated
+            } else {
+                renderChart();
+            }
+        });
+
+        // Logout function
+        window.logout = function () {
+            signOut(auth).then(() => {
+                window.location.href = 'index.html';
+            }).catch((error) => {
+                console.error('Error signing out: ', error);
+            });
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div style="display: flex; justify-content: flex-start; align-items: center; height: 100vh;">
+        <div style="width: 50%; height: 50%; border: 1px solid #ccc; padding: 10px;">
+            <canvas id="transactionChart" style="width: 100%; height: auto;"></canvas>
+        </div>
+    </div>
+    <button onclick="window.location.href='admin-transaction.html'"
+        style="position: fixed; bottom: 10px; right: 120px; background-color: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Show
+        Transactions</button>
+    <button onclick="logout()"
+        style="position: fixed; bottom: 10px; right: 10px; background-color: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Logout</button>
+</body>
+
+</html>

@@ -134,9 +134,19 @@
             const contactNumber = document.getElementById('contact-number').value;
 
             if (transactionType && amount && details) {
-                if (transactionType === 'card' && (!cardNumber || !expiryDate || !cvv)) {
-                    alert('Please fill in card number, expiry date, and CVV for card transactions');
-                    return;
+                if (transactionType === 'card') {
+                    if (!cardNumber || !expiryDate || !cvv) {
+                        alert('Please fill in card number, expiry date, and CVV for card transactions');
+                        return;
+                    }
+                    if (cardNumber.length !== 16) {
+                        alert('Card number must be exactly 16 digits');
+                        return;
+                    }
+                    if (!validateExpiryDate(expiryDate)) {
+                        alert('Invalid expiry date. Please ensure the month is between 01 and 12 and the year is not in the past.');
+                        return;
+                    }
                 }
                 if (transactionType === 'neft' && (!accountNumber || ifscCode.length !== 11)) {
                     alert('Please fill in account number and a valid 11-character IFSC code for NEFT transactions');
@@ -144,16 +154,6 @@
                 }
                 if (transactionType === 'contact' && (!contactNumber || contactNumber.length !== 10)) {
                     alert('Please fill in a valid 10-digit contact number for contact transactions');
-                    return;
-                }
-
-                if (transactionType === 'card' && cardNumber.length !== 16) {
-                    alert('Card number must be exactly 16 digits');
-                    return;
-                }
-
-                if (!validateExpiryDate(expiryDate)) {
-                    alert('Invalid expiry date. Please ensure the month is between 01 and 12 and the year is not in the past.');
                     return;
                 }
 
