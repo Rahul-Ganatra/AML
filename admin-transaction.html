@@ -81,19 +81,33 @@
         async function fetchAndDisplayTransactions() {
             const transactions = [];
             const querySnapshot = await getDocs(collection(db, 'transactions'));
+
+            // Only get 'sent' transactions to avoid duplicates
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
-                transactions.push(data);
+                if (data.transactionDirection === 'sent') {
+                    transactions.push(data);
+                }
             });
 
             const tableBody = document.getElementById('transactionTableBody');
             transactions.forEach(transaction => {
+                let paymentMethod = '';
+                if (transaction.transactionType === 'card') {
+                    paymentMethod = 'Card Payment';
+                } else if (transaction.transactionType === 'neft') {
+                    paymentMethod = 'NEFT Transfer';
+                } else if (transaction.transactionType === 'contact') {
+                    paymentMethod = 'Contact Payment';
+                }
+
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${transaction.userId || '-'}</td>
+                    <td>${transaction.senderUsername}</td>
+                    <td>${transaction.receiverUsername}</td>
                     <td>${transaction.transactionType}</td>
                     <td>${transaction.amount}</td>
-                    <td>${transaction.details || '-'}</td>
+                    <td>${paymentMethod}</td>
                     <td>${transaction.cardNumber || '-'}</td>
                     <td>${transaction.expiryDate || '-'}</td>
                     <td>${transaction.cvv || '-'}</td>
@@ -124,10 +138,11 @@
     <table>
         <thead>
             <tr>
-                <th>User ID</th>
+                <th>From</th>
+                <th>To</th>
                 <th>Type</th>
                 <th>Amount</th>
-                <th>Details</th>
+                <th>Payment Method</th>
                 <th>Card Number</th>
                 <th>Expiry Date</th>
                 <th>CVV</th>

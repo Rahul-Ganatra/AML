@@ -77,6 +77,16 @@
             justify-content: center;
             margin-top: 20px;
         }
+
+        .sent-transaction {
+            color: #dc3545;
+            /* Red color for sent transactions */
+        }
+
+        .received-transaction {
+            color: #28a745;
+            /* Green color for received transactions */
+        }
     </style>
     <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
     <script type="module">
@@ -114,22 +124,70 @@
             const transactionsTableBody = document.getElementById('transactions-table-body');
             transactionsTableBody.innerHTML = ''; // Clear previous transactions
 
-            const q = query(collection(db, 'transactions'), where('userId', '==', userId));
-            const querySnapshot = await getDocs(q);
+            // Query for sent transactions
+            const sentQuery = query(
+                collection(db, 'transactions'),
+                where('senderId', '==', userId),
+                where('transactionDirection', '==', 'sent')
+            );
 
-            querySnapshot.forEach((doc) => {
+            // Query for received transactions
+            const receivedQuery = query(
+                collection(db, 'transactions'),
+                where('receiverId', '==', userId),
+                where('transactionDirection', '==', 'received')
+            );
+
+            const [sentSnapshot, receivedSnapshot] = await Promise.all([
+                getDocs(sentQuery),
+                getDocs(receivedQuery)
+            ]);
+
+            // Display sent transactions
+            sentSnapshot.forEach((doc) => {
                 const transaction = doc.data();
                 const row = document.createElement('tr');
+                row.className = 'sent-transaction';
                 row.innerHTML = `
-                    <td>${transaction.transactionType}</td>
-                    <td>${transaction.amount}</td>
-                    <td>${transaction.details}</td>
+                    <td>Sent</td>
+                    <td>-${transaction.amount}</td>
+                    <td>Sent to ${transaction.receiverUsername}</td>
                     <td>${transaction.cardNumber || '-'}</td>
                     <td>${transaction.expiryDate || '-'}</td>
                     <td>${transaction.cvv || '-'}</td>
                     <td>${transaction.accountNumber || '-'}</td>
                     <td>${transaction.ifscCode || '-'}</td>
                     <td>${transaction.contactNumber || '-'}</td>
+                    <td>${transaction.timestamp.toDate().toLocaleString()}</td>
+                `;
+                transactionsTableBody.appendChild(row);
+            });
+
+            // Display received transactions
+            receivedSnapshot.forEach((doc) => {
+                const transaction = doc.data();
+                let paymentMethod = '';
+                
+                if (transaction.transactionType === 'card') {
+                    paymentMethod = 'via Card Payment';
+                } else if (transaction.transactionType === 'neft') {
+                    paymentMethod = 'via NEFT Transfer';
+                } else if (transaction.transactionType === 'contact') {
+                    paymentMethod = 'via Contact Payment';
+                }
+                
+                const row = document.createElement('tr');
+                row.className = 'received-transaction';
+                row.innerHTML = `
+                    <td>Received</td>
+                    <td>+${transaction.amount}</td>
+                    <td>Received from ${transaction.senderUsername} ${paymentMethod}</td>
+                    <td>${transaction.transactionType === 'card' ? '****' + transaction.cardNumber.slice(-4) : '-'}</td>
+                    <td>${transaction.transactionType === 'card' ? transaction.expiryDate : '-'}</td>
+                    <td>***</td>
+                    <td>${transaction.transactionType === 'neft' ? '****' + transaction.accountNumber.slice(-4) : '-'}</td>
+                    <td>${transaction.transactionType === 'neft' ? transaction.ifscCode : '-'}</td>
+                    <td>${transaction.transactionType === 'contact' ? transaction.contactNumber : '-'}</td>
                     <td>${transaction.timestamp.toDate().toLocaleString()}</td>
                 `;
                 transactionsTableBody.appendChild(row);
@@ -157,7 +215,7 @@
             <tr>
                 <th>Type</th>
                 <th>Amount</th>
-                <th>Details</th>
+                <th>Payment To</th>
                 <th>Card Number</th>
                 <th>Expiry Date</th>
                 <th>CVV</th>

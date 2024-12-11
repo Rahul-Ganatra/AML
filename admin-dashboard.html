@@ -31,7 +31,11 @@
             const transactions = [];
             const querySnapshot = await getDocs(collection(db, 'transactions'));
             querySnapshot.forEach((doc) => {
-                transactions.push(doc.data());
+                const data = doc.data();
+                // Only include 'sent' transactions to avoid duplicates
+                if (data.transactionDirection === 'sent') {
+                    transactions.push(data);
+                }
             });
             return transactions;
         }

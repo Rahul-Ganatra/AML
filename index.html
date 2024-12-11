@@ -133,6 +133,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyC0lMVVq_q-Pjd-R9VnnN-e9Sdp556qDKQ",
@@ -151,15 +152,21 @@
         window.auth = auth; // Make auth available globally
 
         window.signup = function (role) {
-            let email, password, code;
+            let email, password, username, code;
             if (role === 'user') {
-                email = document.getElementById('user-signup-username').value;
+                username = document.getElementById('user-signup-username').value;
+                email = document.getElementById('user-signup-email').value;
                 password = document.getElementById('user-signup-password').value;
+                
+                if (!username) {
+                    alert('Please enter a username');
+                    return;
+                }
             } else if (role === 'admin') {
                 email = document.getElementById('admin-signup-username').value;
                 password = document.getElementById('admin-signup-password').value;
                 code = document.getElementById('admin-signup-code').value;
-                if (code !== '123123') { // Admin code is set to '123123'
+                if (code !== '123123') {
                     alert('Invalid admin code');
                     return;
                 }
@@ -168,10 +175,24 @@
             if (email && password) {
                 createUserWithEmailAndPassword(auth, email, password)
                     .then((userCredential) => {
-                        alert(role + ' signed up with email: ' + email);
+                        const user = userCredential.user;
+                        
+                        // Store additional user data in Firestore
                         if (role === 'user') {
-                            toggleUserForm('login');
-                        } else if (role === 'admin') {
+                            const db = getFirestore(app);
+                            setDoc(doc(db, 'users', user.uid), {
+                                username: username,
+                                email: email,
+                                role: 'user',
+                                createdAt: new Date()
+                            }).then(() => {
+                                alert('User signed up successfully!');
+                                toggleUserForm('login');
+                            }).catch((error) => {
+                                alert('Error saving user data: ' + error.message);
+                            });
+                        } else {
+                            alert('Admin signed up with email: ' + email);
                             toggleAdminForm('login');
                         }
                     })
@@ -197,7 +218,7 @@
                 try {
                     // First authenticate with Firebase
                     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                    
+
                     // Then verify with backend
                     const response = await fetch('http://localhost:5000/api/login', {
                         method: 'POST',
@@ -208,7 +229,7 @@
                     });
 
                     const data = await response.json();
-                    
+
                     if (data.status === 'success') {
                         if (role === 'user') {
                             window.location.href = 'user-dashboard.html';
@@ -296,7 +317,8 @@
         <!-- User Signup -->
         <div class="card-face front" id="user-signup-section" style="display: none;">
             <h2>User Sign Up</h2>
-            <input type="text" id="user-signup-username" placeholder="Email">
+            <input type="text" id="user-signup-username" placeholder="Username">
+            <input type="text" id="user-signup-email" placeholder="Email">
             <input type="password" id="user-signup-password" placeholder="Password">
             <button class="signup-button" onclick="signup('user')">Sign Up</button>
             <button class="back-button" onclick="toggleUserForm('login')">Back to Login</button>
